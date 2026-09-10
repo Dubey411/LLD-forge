@@ -29,3 +29,7 @@ pnpm-debug.log*
 .idea/
 .DS_Store
 Thumbs.db
+
+# Archives & Temporary binaries
+*.zip
+*.pdf
