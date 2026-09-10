@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:6.0
+    container_name: lld_mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - lld_net
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: lld_server
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - MONGODB_URI=mongodb://mongodb:27017/lld_practice
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - ANTHROPIC_MODEL=${ANTHROPIC_MODEL:-claude-sonnet-4-6}
+      - NODE_ENV=production
+    depends_on:
+      - mongodb
+    networks:
+      - lld_net
+
+volumes:
+  mongo_data:
+
+networks:
+  lld_net:
+    driver: bridge
