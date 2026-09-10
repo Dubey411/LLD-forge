@@ -1,0 +1,15 @@
+{
+  "name": "lld-practice-platform",
+  "version": "1.0.0",
+  "description": "LLD Practice Platform MVP - Low-Level Design practice with evidence-based AI feedback",
+  "scripts": {
+    "dev:server": "npm --prefix server run dev",
+    "dev:client": "npm --prefix client run dev",
+    "seed": "npm --prefix server run seed",
+    "test:server": "npm --prefix server test",
+    "install:all": "npm --prefix server install && npm --prefix client install"
+  },
+  "keywords": ["lld", "low-level-design", "ai-evaluation", "react", "express", "mongodb"],
+  "author": "",
+  "license": "ISC"
+}
