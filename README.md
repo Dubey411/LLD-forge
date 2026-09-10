@@ -38,38 +38,66 @@ Every attempt is persisted and scored with verbatim evidence citations from the 
 
 ## Architecture / How It Works
 
-The platform uses a synchronous evaluation flow backed by an explicit state machine and deterministic guard rails:
+### System Architecture & Evaluation Pipeline Flow
 
-```
-[ Learner Text Submission ]
-            │
-            ▼
-[ Save Submission: Status = 'pending' ]  <── Submission preserved immediately
-            │
-            ▼
-[ Deterministic Checks ] ──(Fails min length / OOP markers)──► [ Short-Circuit: Status = 'completed' (Score 0) ]
-            │ (Passes)
-            ▼
-[ SHA-256 Hash Idempotency Check ] ──(Duplicate found)──► [ Reuse Existing Completed Evaluation ]
-            │ (Unique)
-            ▼
-[ Status = 'evaluating' ]
-            │
-            ▼
-[ AI Rubric Scoring (Claude API) ]
-  - Evaluates 7 dimensions (Score 0-5)
-  - Requires exact verbatim quote in 'evidence'
-            │
-            ▼
-[ Deterministic Evidence Verification Guard ]
-  - Verifies cited quote exists in submission text
-  - If missing: sets evidenceVerified=false & confidence='low'
-            │
-            ▼
-[ Save Evaluation & Status = 'completed' ]
-            │
-            ▼
-[ Frontend Polling (~2s) renders Results & Delta View ]
+```mermaid
+flowchart TD
+    subgraph Client["Frontend Layer (React + Vite + Tailwind)"]
+        UI_Catalog["Problem Catalog\n(Parking Lot, Elevator, Vending)"]
+        UI_Editor["Monospace Studio\n(Plain Text / Pseudocode)"]
+        UI_Polling["Live Polling Loop\n(Every ~2s)"]
+        UI_Results["Evaluation & Delta View\n(Scores, Evidence & Deltas)"]
+    end
+
+    subgraph API["Backend API Layer (Node.js + Express Monolith)"]
+        Router["Express REST Router\n(/api/problems, /api/attempts, /api/submissions)"]
+        Service_Sub["SubmissionService\n(State Machine & Persistence)"]
+        Service_Delta["DeltaService\n(Per-Criterion Progress Comparison)"]
+    end
+
+    subgraph Pipeline["Multi-Stage Evaluation Pipeline"]
+        Gate{"Deterministic Gate\n(≥100 chars & ≥2 OOP tokens?)"}
+        ShortCircuit["Deterministic Short-Circuit\n(Score: 0, Instant Feedback)"]
+        Idempotency{"SHA-256 Hash Check\n(Identical previous submission?)"}
+        ReuseCache["Reuse Existing Evaluation\n(Zero Token Waste)"]
+        AI_Call["AI Evaluator (Claude API)\n(7-Dimension Rubric & Exact Quotes)"]
+        EvidenceGuard{"Evidence Verification Guard\n(Is quote verified in text?)"}
+        Verified["evidenceVerified: true\nconfidence: 'high'"]
+        Unverified["evidenceVerified: false\nconfidence: 'low' (Needs Review)"]
+    end
+
+    subgraph Persistence["Data & External Services"]
+        MongoDB[("MongoDB Database\n- Problems\n- Attempts\n- Submissions\n- Evaluations")]
+        Claude["Anthropic Claude API\n(claude-sonnet-4-6)"]
+    end
+
+    %% Flow Steps
+    UI_Editor -->|"1. POST /api/attempts/:id/submissions"| Router
+    Router --> Service_Sub
+    Service_Sub -->|"2. Save status = 'pending'"| MongoDB
+
+    Service_Sub --> Gate
+    Gate -- "Fails (Too short / No OOP)" --> ShortCircuit
+    ShortCircuit -->|"Status = 'completed'"| MongoDB
+
+    Gate -- "Passes" --> Idempotency
+    Idempotency -- "Duplicate Hash Found" --> ReuseCache
+    ReuseCache -->|"Reuse Evaluation"| MongoDB
+
+    Idempotency -- "Unique Content" --> AI_Call
+    AI_Call -->|"3. Prompt with Rubric & Specs"| Claude
+    Claude -->|"4. Structured JSON Output"| AI_Call
+
+    AI_Call --> EvidenceGuard
+    EvidenceGuard -- "Quote Verified" --> Verified
+    EvidenceGuard -- "Quote Fabricated" --> Unverified
+
+    Verified -->|"5. Save Evaluation & Status = 'completed'"| MongoDB
+    Unverified -->|"5. Save Evaluation & Status = 'completed'"| MongoDB
+
+    UI_Polling -.->|"6. GET /api/submissions/:id"| Router
+    Router -->|"7. Evaluation Result"| UI_Results
+    Service_Delta -->|"8. Compute per-criterion deltas"| UI_Results
 ```
 
 ### Domain Model
