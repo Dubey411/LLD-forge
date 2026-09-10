@@ -38,37 +38,37 @@ Every attempt is persisted and scored with verbatim evidence citations from the 
 
 ## Architecture / How It Works
 
-### System Architecture & Evaluation Pipeline Flow
+### 2-Day MVP Prototype Architecture & Evaluation Flow
 
 ```mermaid
 flowchart TD
     subgraph Client["Frontend Layer (React + Vite + Tailwind)"]
         UI_Catalog["Problem Catalog\n(Parking Lot, Elevator, Vending)"]
         UI_Editor["Monospace Studio\n(Plain Text / Pseudocode)"]
-        UI_Polling["Live Polling Loop\n(Every ~2s)"]
+        UI_Polling["Simple Polling Loop\n(Every ~2s)"]
         UI_Results["Evaluation & Delta View\n(Scores, Evidence & Deltas)"]
     end
 
-    subgraph API["Backend API Layer (Node.js + Express Monolith)"]
+    subgraph API["Backend Monolith (Node.js + Express)"]
         Router["Express REST Router\n(/api/problems, /api/attempts, /api/submissions)"]
-        Service_Sub["SubmissionService\n(State Machine & Persistence)"]
+        Service_Sub["SubmissionService\n(State Machine & Immediate Persistence)"]
         Service_Delta["DeltaService\n(Per-Criterion Progress Comparison)"]
     end
 
-    subgraph Pipeline["Multi-Stage Evaluation Pipeline"]
-        Gate{"Deterministic Gate\n(≥100 chars & ≥2 OOP tokens?)"}
+    subgraph Pipeline["MVP Evaluation Pipeline"]
+        Gate{"Deterministic Check\n(≥100 chars & ≥2 OOP tokens?)"}
         ShortCircuit["Deterministic Short-Circuit\n(Score: 0, Instant Feedback)"]
-        Idempotency{"SHA-256 Hash Check\n(Identical previous submission?)"}
-        ReuseCache["Reuse Existing Evaluation\n(Zero Token Waste)"]
-        AI_Call["AI Evaluator (Claude API)\n(7-Dimension Rubric & Exact Quotes)"]
-        EvidenceGuard{"Evidence Verification Guard\n(Is quote verified in text?)"}
+        Idempotency{"SHA-256 Hash Check\n(Duplicate submission?)"}
+        ReuseCache["Reuse Existing Evaluation\n(Avoids Re-running AI)"]
+        AI_Call["AI Evaluator Engine\n(7 Rubric Dimensions & Exact Quotes)"]
+        EvidenceGuard{"Evidence Verification Guard\n(Does quote appear in text?)"}
         Verified["evidenceVerified: true\nconfidence: 'high'"]
         Unverified["evidenceVerified: false\nconfidence: 'low' (Needs Review)"]
     end
 
-    subgraph Persistence["Data & External Services"]
+    subgraph Persistence["Data & AI Services"]
         MongoDB[("MongoDB Database\n- Problems\n- Attempts\n- Submissions\n- Evaluations")]
-        Claude["Anthropic Claude API\n(claude-sonnet-4-6)"]
+        AI_Service["AI Evaluator Provider\n(Anthropic Claude API or Built-in Local Fallback)"]
     end
 
     %% Flow Steps
@@ -85,8 +85,8 @@ flowchart TD
     ReuseCache -->|"Reuse Evaluation"| MongoDB
 
     Idempotency -- "Unique Content" --> AI_Call
-    AI_Call -->|"3. Prompt with Rubric & Specs"| Claude
-    Claude -->|"4. Structured JSON Output"| AI_Call
+    AI_Call -->|"3. Send prompt with rubric"| AI_Service
+    AI_Service -->|"4. Structured JSON output"| AI_Call
 
     AI_Call --> EvidenceGuard
     EvidenceGuard -- "Quote Verified" --> Verified
@@ -99,6 +99,7 @@ flowchart TD
     Router -->|"7. Evaluation Result"| UI_Results
     Service_Delta -->|"8. Compute per-criterion deltas"| UI_Results
 ```
+
 
 ### Domain Model
 
