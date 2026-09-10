@@ -12,6 +12,25 @@ Every attempt is persisted and scored with verbatim evidence citations from the 
 
 ---
 
+## Screenshots & User Journey
+
+### 1. Problem Catalog
+Select from canonical Low-Level Design challenges with defined requirements and constraints.
+![Problem Catalog](docs/screenshots/01_problem_catalog.png)
+
+### 2. Practice Studio & Monospace Editor
+Dual-panel workspace with problem requirements and rubric drawer on the left, and pseudocode editor with live structural indicators on the right.
+![Practice Studio](docs/screenshots/02_practice_studio.png)
+
+### 3. Structured Rubric Feedback & Evidence Verification
+Comprehensive evaluation featuring overall score, executive summary, and verified verbatim quotes from the learner's text.
+![Evaluation Results](docs/screenshots/03_evaluation_results.png)
+
+### 4. Attempt History & Progressive Learning Deltas
+Track iterative skill improvements across retries with per-criterion score diffs.
+![Attempt History Deltas](docs/screenshots/04_attempt_history_deltas.png)
+
+
 ## Features
 
 - **Problem Selection**: Choose from 3 seeded canonical LLD challenges (**Parking Lot**, **Elevator System**, and **Vending Machine**) complete with functional requirements, constraints, and tags.
